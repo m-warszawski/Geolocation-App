@@ -9,38 +9,37 @@ import ListItem from './ListItem';
 
 class List extends Component {
     constructor(props) {
-        console.log(">>> LIST <<<")
         super(props);
         this.state = {
-            records: this.props.route.params.records,
-            markery: [],
-            isAll: false,
-            wszystkie: this.props.route.params.wszystko,
+            savedMarkers: [],
+            selectedMarkers: [],
+            mainSwitchState: false,
+            switchesStates: [],
         }
-        this.off = this.off.bind(this);
-        this.all = this.all.bind(this);
-        this.przestaw = this.przestaw.bind(this);
+        this.setSwitchesState = this.setSwitchesState.bind(this)
+        this.changeSwitchState = this.changeSwitchState.bind(this);
+        this.mainSwitchState = this.mainSwitchState.bind(this);
+        this.autochangeMainSwitchState = this.autochangeMainSwitchState.bind(this);
+        this.loadLocationData(true);
     }
 
-    // Pobranie loalizacji
-    async lokalizacja() {
-        console.log(">> KLiknięto POBIERZ I ZAPISZ POZYCJĘ")
-        let { status } = await Permissions.askAsync(Permissions.LOCATION);
+    // Get location
+    async getPosition() {
+        let { status } = await Permissions.askAsync(Permissions.LOCATION_FOREGROUND);
         if (status !== 'granted') {
             alert('Odmowa dostępu do lokalizacji urządzenia')
         }
-        var pos = await Location.getCurrentPositionAsync()
-        if (pos != undefined) {
-            console.log("\tPobrano lokalizację")
-            this.confirmAlert(pos)
+        let currentPosition = await Location.getCurrentPositionAsync()
+        if (currentPosition != undefined) {
+            this.confirmAlert(currentPosition)
         }
         else {
             alert("Nie udało się pobrać pozycji !!!")
         }
     }
 
-    // Confirm z pytaniem czy zapisać ?
-    confirmAlert(pos) {
+    // Save confirmation
+    confirmAlert(currentPosition) {
         var that = this;
         Alert.alert(
             "POZYCJA ZOSTAŁA POBRANA",
@@ -49,241 +48,223 @@ class List extends Component {
                 {
                     text: "NIE",
                     onPress: () => { return 0 },
-                    style: "NIE"
                 },
                 {
                     text: "TAK",
-                    onPress: () => { that.zapisz(pos) },
+                    onPress: () => { that.savePosition(currentPosition) },
                 }
             ],
             { cancelable: false }
         );
     }
 
-    // Zapis lokalizacji
-    async zapisz(dane) {
-        if (this.state.records.length > 0) {
-            var records = this.state.records;
-            var nr = this.state.records.length;
-            records.push({ id: nr, item: dane })
+    // Location save
+    async savePosition(currentPosition) {
+        let savedMarkersCopy = this.state.savedMarkers;
+        if (savedMarkersCopy.length > 0) {
+            savedMarkersCopy.push({ id: savedMarkersCopy.length, item: currentPosition })
         }
         else {
-            var nr = this.state.records.length;
-            var records = [{ id: nr, item: dane }];
+            savedMarkersCopy = [{ id: savedMarkersCopy.length, item: currentPosition }];
         }
 
         try {
-            await AsyncStorage.setItem('@save_position', JSON.stringify(records))
+            await AsyncStorage.setItem('@save_position', JSON.stringify(savedMarkersCopy))
         } catch (e) {
-            // **errors    
+            alert("Error")
         }
 
-        // Dodanie do tablicy "wszystkie"
-        let wszystkie = this.state.wszystkie;
-        wszystkie.push(this.state.isAll)
+        let switchesStatesUpdated = this.state.switchesStates;
+        switchesStatesUpdated.push(this.state.mainSwitchState)
         this.setState({
-            wszystkie: wszystkie
+            switchesStates: switchesStatesUpdated
         })
-
-        console.log("\tZapisano lokalizację")
-        this.czytaj()
+        this.loadLocationData()
     }
 
-    // Odczyt lokalizacji zapisanych w pamięci
-    async czytaj() {
-        console.log("\tCzytaj...")
-        var rekordy = [];
+    // Read locations stored in memory
+    async loadLocationData(first=false) {
+        let loadedData = []
         try {
             const jsonValue = await AsyncStorage.getItem('@save_position')
             if (jsonValue != null ? JSON.parse(jsonValue) : null) {
-                rekordy.push(JSON.parse(jsonValue));
+                loadedData.push(JSON.parse(jsonValue));
             }
         } catch (e) {
-            // error reading value
+            alert("Error")
         }
 
-        if (rekordy[0] != undefined) {
-            var len = rekordy[0].length;
-            var tablica = [];
-            for (let i = 0; i < len; i++) {
-                tablica.push(rekordy[0][i])
+        if (loadedData[0] != undefined) {
+            var savedMarkersUpdated = [];
+            for (let item of loadedData[0]) {
+                savedMarkersUpdated.push(item)
             }
             this.setState({
-                records: tablica
+                savedMarkers: savedMarkersUpdated
             });
+        }
+        if(first){
+            this.setSwitchesState(savedMarkersUpdated.length)
         }
     }
 
-    // Usunięcie wszystkich zapisanych lokalizacji
-    async czysc() {
-        console.log(">> KLiknięto USUŃ WSZYSTKIE DANE")
+    setSwitchesState(length){
+        let initialSwitchesStates = [];
+        for (let i = 0; i < length; i++) {
+            initialSwitchesStates.push(this.state.mainSwitchState);
+        }
+        this.setState({
+            switchesStates: initialSwitchesStates
+        })
+    }
+
+    // Delete all saved locations
+    async clearLocationData() {
         try {
             await AsyncStorage.clear()
             alert("Pamięć została wyczyszczona!")
-            console.log("\tPamięć została wyczyszczona!")
         } catch (e) {
             alert("Niepowodzenie!")
-            console.log("\tNiepowodzenie!")
         }
 
         this.setState({
-            records: [],
-            isAll: false,
-            markery: [],
-            wszystkie: []
+            savedMarkers: [],
+            mainSwitchState: false,
+            selectedMarkers: [],
+            switchesStates: []
         });
     }
 
-    // >> Przejście do MAPY
-    mapa() {
-        console.log(">> Kliknięto PRZEJDŹ DO MAPY")
-        if(this.state.markery.length == 0){
+    // >> Go to MAP
+    showMap() {
+        if (this.state.selectedMarkers.length == 0) {
             alert("Zaznacz przynajmniej jedną pozycję!")
-            console.log("\tAlert")
-        }
-        else{
-            this.props.navigation.navigate("MAP", { markery: this.state.markery })
-        }
-    }
-
-    // Funkcja zmieniajaca stan pojedyńczego switcha
-    off(it, id) {
-        if (this.state.wszystkie[id] == false) {
-            let tym = this.state.markery;
-            tym.push(it)
-            let wszystkie = this.state.wszystkie;
-            wszystkie[id] = !wszystkie[id];
-
-            this.setState({
-                markery: tym,
-                wszystkie: wszystkie
-            });
-
-            console.log("\tZmieniono stan: " + id + " na TRUE")
-            this.przestaw("+")
-        }
-        else if (this.state.wszystkie[id] == true) {
-            var tym = this.state.markery;
-            for (var i = 0; i < this.state.markery.length; i++) {
-                if (tym[i].id == id) {
-                    tym.splice(i, 1);
-                    // -- console.log("WYCIĘTO", tym)
-                }
-            }
-            let wszystkie = this.state.wszystkie;
-            wszystkie[id] = !wszystkie[id];
-
-            this.setState({
-                markery: tym,
-                wszystkie: wszystkie,
-            });
-
-            console.log("\tZmieniono stan: " + id + " na FALSE")
-            this.przestaw("-")
-        }
-    }
-
-    // Funkcja dostosuwująca nadrzędny switch do pojedyńczych
-    przestaw(ss) {
-        console.log("\tSpradzam...")
-        if (ss == "-") {
-            let czy = this.state.wszystkie.includes(true)
-            if (czy == false) {
-                this.setState({
-                    isAll: false
-                })
-                console.log("\tisAll = FALSE")
-            }
-        }
-        else if (ss == "+") {
-            let czy = this.state.wszystkie.includes(false)
-            if (czy == false) {
-                this.setState({
-                    isAll: true
-                })
-                console.log("\tisAll = TRUE")
-            }
-        }
-    }
-
-    // Funkcja odpowiedzialna za zmianę nadrzędnego switcha
-    all() {
-        console.log(">> Kliknięto główny switch")
-        if (this.state.isAll == false) {
-            var wszystkie = this.state.wszystkie;
-            for (let i = 0; i < wszystkie.length; i++) {
-                wszystkie[i] = true;
-            }
-            var rek = [];
-            for (let j = 0; j < this.state.records.length; j++) {
-                rek.push(this.state.records[j])
-            }
-
-            this.setState({
-                markery: rek,
-                isAll: true,
-                wszystkie: wszystkie
-            });
-
-            console.log("\tisAll = TRUE")
         }
         else {
-            let wszystkie = this.state.wszystkie;
-            for (let i = 0; i < wszystkie.length; i++) {
-                wszystkie[i] = false;
+            this.props.navigation.navigate("MAP", { selectedMarkers: this.state.selectedMarkers })
+        }
+    }
+
+    // Function changing the state of a single switch
+    changeSwitchState(item, id) {
+        if (this.state.switchesStates[id] == false) {
+            let selectedMarkersCopy = this.state.selectedMarkers;
+            selectedMarkersCopy.push(item)
+            let switchesStatesCopy = this.state.switchesStates;
+            switchesStatesCopy[id] = !switchesStatesCopy[id];
+
+            this.setState({
+                selectedMarkers: selectedMarkersCopy,
+                switchesStates: switchesStatesCopy
+            });
+        }
+        else if (this.state.switchesStates[id] == true) {
+            let selectedMarkersCopy = this.state.selectedMarkers;
+            for (let i in selectedMarkersCopy) {
+                if (selectedMarkersCopy[i].id == id) {
+                    selectedMarkersCopy.splice(i, 1);
+                }
+            }
+            let switchesStatesCopy = this.state.switchesStates;
+            switchesStatesCopy[id] = !switchesStatesCopy[id];
+
+            this.setState({
+                selectedMarkers: selectedMarkersCopy,
+                switchesStates: switchesStatesCopy,
+            });
+        }
+        this.autochangeMainSwitchState()
+    }
+    // A function that adapts the master switch to individual ones
+    autochangeMainSwitchState() {
+        let checkerTrue = arr => arr.every(v => v === true);
+        if (checkerTrue(this.state.switchesStates)) {
+            this.setState({
+                mainSwitchState: true
+            })
+        }
+        else {
+            this.setState({
+                mainSwitchState: false
+            })
+        }
+    }
+
+    // Function responsible for changing the state of the master switch
+    mainSwitchState() {
+        let switchesStatesCopy = this.state.switchesStates;
+        if (this.state.mainSwitchState == false) {
+            for (let i in switchesStatesCopy) {
+                switchesStatesCopy[i] = true;
+            }
+            let selectedMarkersUpdated = [];
+            let savedMarkersCopy = this.state.savedMarkers;
+            for (let item of savedMarkersCopy) {
+                selectedMarkersUpdated.push(item)
             }
 
             this.setState({
-                markery: [],
-                isAll: false,
-                wszystkie: wszystkie
+                selectedMarkers: selectedMarkersUpdated,
+                mainSwitchState: true,
+                switchesStates: switchesStatesCopy
+            });
+
+        }
+        else {
+            for (let i in switchesStatesCopy) {
+                switchesStatesCopy[i] = false;
+            }
+
+            this.setState({
+                selectedMarkers: [],
+                mainSwitchState: false,
+                switchesStates: switchesStatesCopy
             })
 
-            console.log("\tisAll = FALSE")
         }
     }
 
     render() {
         return (
-            <View style={styles.opcje}>
-                <View style={styles.opcje}>
-                    <View style={styles.gora}>
+            <View style={styles.options}>
+                <View style={styles.options}>
+                    <View style={styles.upper}>
 
-                        <MyButton style={[styles.buttony, styles.gorne]}
+                        <MyButton style={[styles.buttons, styles.upperbuttons]}
                             title='POBIERZ I ZAPISZ POZYCJĘ'
-                            onPress={this.lokalizacja.bind(this)}>
+                            onPress={this.getPosition.bind(this)}>
                         </MyButton>
 
-                        <MyButton style={[styles.buttony, styles.gorne]}
+                        <MyButton style={[styles.buttons, styles.upperbuttons]}
                             title='USUŃ WSZYSTKIE DANE'
-                            onPress={this.czysc.bind(this)}>
+                            onPress={this.clearLocationData.bind(this)}>
                         </MyButton>
 
                     </View>
-                    <View style={styles.dol}>
+                    <View style={styles.lower}>
 
-                        <MyButton style={[styles.buttony, styles.dolne]}
+                        <MyButton style={[styles.buttons, styles.lowerbuttons]}
                             title='PRZEJDŹ DO MAPY'
-                            onPress={this.mapa.bind(this)}>
+                            onPress={this.showMap.bind(this)}>
                         </MyButton>
 
-                        {/* GŁÓWNY SWITCH */}
+                        {/* Main Switch*/}
                         <Switch
                             trackColor={{ false: "#767577", true: "#4164cc" }}
-                            thumbColor={this.state.isAll ? "#ff99a7" : "#f4f3f4"}
-                            value={this.state.isAll}
-                            onValueChange={this.all}
-                            style={[styles.buttony, styles.dolne]} />
+                            thumbColor={this.state.mainSwitchState ? "#ff99a7" : "#f4f3f4"}
+                            value={this.state.mainSwitchState}
+                            onValueChange={this.mainSwitchState}
+                            style={[styles.buttons, styles.lowerbuttons]} />
 
                     </View>
                 </View>
-                <View style={styles.lista}>
+                <View style={styles.list}>
 
-                    {/* LISTA ZAPISANYCH LOKALIZACJI */}
+                    {/* List of Markers */}
                     <FlatList
-                        data={this.state.records}
+                        data={this.state.savedMarkers}
                         keyExtractor={item => item.id.toString()}
-                        renderItem={({ item, index }) => <ListItem key={index} pleaserefresh={Math.random()} stat={this.state.wszystkie[item.id]} id={item.id} item={item} navigation={this.props.navigation} off={this.off}></ListItem>}
+                        renderItem={({ item, index }) => <ListItem key={index} pleaserefresh={Math.random()} stat={this.state.switchesStates[item.id]} id={item.id} item={item} navigation={this.props.navigation} changeSwitchState={this.changeSwitchState}></ListItem>}
                     />
 
                 </View>
@@ -295,37 +276,37 @@ class List extends Component {
 export default List;
 
 const styles = StyleSheet.create({
-    opcje: {
+    options: {
         flex: 1,
         flexDirection: 'column',
         borderBottomWidth: 1,
         borderBottomColor: '#2f468a',
     },
-    buttony: {
+    buttons: {
         color: "#000",
         padding: 15,
     },
-    gora: {
+    upper: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'stretch',
     },
-    gorne: {
+    upperbuttons: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    dol: {
+    lower: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'stretch',
     },
-    dolne: {
+    lowerbuttons: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    lista: {
+    list: {
         flex: 5
     }
 });

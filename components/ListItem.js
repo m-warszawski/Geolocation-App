@@ -6,39 +6,38 @@ class ListItem extends Component {
         super(props);
     }
 
-    // Funkcja wywołująca funkcję w rodzicu zsmieniającą stan switcha 
-    zmiana() {
-        console.log(">> Kliknięto pojedyńczy switch")
-        this.props.off(this.props.item, this.props.id)
+    // A function that calls a function in the parent that changes the state of the switch 
+    changeState() {
+        this.props.changeSwitchState(this.props.item, this.props.id)
     }
 
     render() {
         return (
             <View style={styles.main} >
-                <View style={styles.obrazek}>
+                <View style={styles.picture}>
 
-                    {/* OBRAZEK */}
+                    {/* Picture */}
                     <Image style={{ width: 80, height: 80 }}
                         source={require('./ikona.png')}
                     />
 
                 </View>
-                <View style={styles.opis}>
+                <View style={styles.description}>
 
-                    {/* OPIS */}
-                    <Text style={styles.hed}>Timestamp: {this.props.item.item.timestamp}</Text>
+                    {/* Description */}
+                    <Text style={styles.head}>Timestamp: {this.props.item.item.timestamp}</Text>
                     <Text>Latitude: {this.props.item.item.coords.latitude}</Text>
                     <Text>Longitude: {this.props.item.item.coords.longitude}</Text>
 
                 </View>
                 <View style={styles.switch}>
 
-                    {/* SWITCH */}
+                    {/* Switch */}
                     <Switch
                         trackColor={{ false: "#767577", true: "#4164cc" }}
                         thumbColor={this.props.stat ? "#ff99a7" : "#f4f3f4"}
                         value={this.props.stat}
-                        onValueChange={this.zmiana.bind(this)}
+                        onValueChange={this.changeState.bind(this)}
                     />
 
                 </View>
@@ -53,20 +52,19 @@ const styles = StyleSheet.create({
     main: {
         flex: 1,
         flexDirection: 'row',
-        // alignItems: 'space-between',
         alignItems: 'center',
         borderBottomWidth: 1,
         borderBottomColor: '#2f468a',
     },
-    obrazek: {
+    picture: {
         flex: 1,
         paddingRight: 20
     },
-    opis: {
+    description: {
         flex: 3,
 
     },
-    hed: {
+    head: {
         fontSize: 14,
         fontWeight: 'bold'
     },
