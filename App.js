@@ -13,14 +13,14 @@ export default function App() {
     <NavigationContainer >
       <Stack.Navigator >
 
-        {/* EKRAN GŁÓWNY */}
+        {/* MAIN SCREEN */}
         <Stack.Screen name="MAIN" component={Main}
           options={{
             headerShown: false
           }}
         />
 
-        {/* LISTA */}
+        {/* LIST ITEM */}
         <Stack.Screen name="LIST" component={List} options={{
           title: "ZAPIS POZYCJI",
           headerStyle: {
@@ -29,7 +29,7 @@ export default function App() {
           headerTintColor: '#fff',
         }} />
 
-        {/* MAPA */}
+        {/* MAP */}
         <Stack.Screen name="MAP" component={Map} options={{
           title: "LOKALIZACJA NA MAPIE",
           headerStyle: {
