@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Permissions from "expo-permissions";
 import * as Location from "expo-location";
 
-import MyButton from "./MyButton"
-import ListItem from './ListItem';
+import MyButton from "../components/MyButton"
+import ListItem from '../components/ListItem';
 
 class List extends Component {
     constructor(props) {
@@ -14,7 +14,7 @@ class List extends Component {
             savedMarkers: [],
             selectedMarkers: [],
             mainSwitchState: false,
-            switchesStates: [],
+            switchesStates: [], 
         }
         this.setSwitchesState = this.setSwitchesState.bind(this)
         this.changeSwitchState = this.changeSwitchState.bind(this);
@@ -60,7 +60,7 @@ class List extends Component {
 
     // Location save
     async savePosition(currentPosition) {
-        let savedMarkersCopy = this.state.savedMarkers;
+        let savedMarkersCopy = [...this.state.savedMarkers];
         if (savedMarkersCopy.length > 0) {
             savedMarkersCopy.push({ id: savedMarkersCopy.length, item: currentPosition })
         }
@@ -74,7 +74,7 @@ class List extends Component {
             alert("Error")
         }
 
-        let switchesStatesUpdated = this.state.switchesStates;
+        let switchesStatesUpdated = [...this.state.switchesStates];
         switchesStatesUpdated.push(this.state.mainSwitchState)
         this.setState({
             switchesStates: switchesStatesUpdated
@@ -147,53 +147,46 @@ class List extends Component {
 
     // Function changing the state of a single switch
     changeSwitchState(item, id) {
-        if (this.state.switchesStates[id] == false) {
-            let selectedMarkersCopy = this.state.selectedMarkers;
+        let selectedMarkersCopy = [...this.state.selectedMarkers];
+        let switchesStatesCopy = [...this.state.switchesStates];
+        if (!this.state.switchesStates[id]) {
             selectedMarkersCopy.push(item)
-            let switchesStatesCopy = this.state.switchesStates;
             switchesStatesCopy[id] = !switchesStatesCopy[id];
-
-            this.setState({
-                selectedMarkers: selectedMarkersCopy,
-                switchesStates: switchesStatesCopy
-            });
         }
-        else if (this.state.switchesStates[id] == true) {
-            let selectedMarkersCopy = this.state.selectedMarkers;
+        else if (this.state.switchesStates[id]) {
             for (let i in selectedMarkersCopy) {
                 if (selectedMarkersCopy[i].id == id) {
                     selectedMarkersCopy.splice(i, 1);
                 }
             }
-            let switchesStatesCopy = this.state.switchesStates;
             switchesStatesCopy[id] = !switchesStatesCopy[id];
-
-            this.setState({
-                selectedMarkers: selectedMarkersCopy,
-                switchesStates: switchesStatesCopy,
-            });
         }
-        this.autochangeMainSwitchState()
+
+        this.setState({
+            selectedMarkers: selectedMarkersCopy,
+            switchesStates: switchesStatesCopy,
+        });
+        this.autochangeMainSwitchState(switchesStatesCopy)
     }
     // A function that adapts the master switch to individual ones
-    autochangeMainSwitchState() {
+    autochangeMainSwitchState(switchesStatesCopy) {
         let checkerTrue = arr => arr.every(v => v === true);
-        if (checkerTrue(this.state.switchesStates)) {
-            this.setState({
-                mainSwitchState: true
-            })
+        let state = this.state.mainSwitchState;
+        if (checkerTrue(switchesStatesCopy)) {
+            state = true;
         }
         else {
-            this.setState({
-                mainSwitchState: false
-            })
+            state = false;
         }
+        this.setState({
+            mainSwitchState: state,
+        })
     }
 
     // Function responsible for changing the state of the master switch
     mainSwitchState() {
-        let switchesStatesCopy = this.state.switchesStates;
-        if (this.state.mainSwitchState == false) {
+        let switchesStatesCopy = [...this.state.switchesStates];
+        if (!this.state.mainSwitchState) {
             for (let i in switchesStatesCopy) {
                 switchesStatesCopy[i] = true;
             }

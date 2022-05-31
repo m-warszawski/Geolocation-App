@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import MyButton from "./MyButton"
+import MyButton from "../components/MyButton"
 import * as Font from "expo-font";
 
 class Main extends Component {  
@@ -16,7 +15,7 @@ class Main extends Component {
     // Custom font setting
     async customFont() {
         await Font.loadAsync({
-            'myfont': require('./fonts/vuldo.ttf'), 
+            'myfont': require('../assets/fonts/vuldo.ttf'), 
         });
         this.setState({ fontloaded: true })
     }

@@ -18,7 +18,7 @@ class ListItem extends Component {
 
                     {/* Picture */}
                     <Image style={{ width: 80, height: 80 }}
-                        source={require('./ikona.png')}
+                        source={require('../assets/images/ikona.png')}
                     />
 
                 </View>

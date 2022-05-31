@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-import Main from "./components/Main";
-import Map from "./components/Map"
-import List from "./components/List";
+import Main from "./pages/Main";
+import Map from "./pages/Map"
+import List from "./pages/List";
 
 const Stack = createStackNavigator();
 
