@@ -31,3 +31,4 @@ Projekt stworzony został w oparciu o:
 - CSS
 - Expo
 - NodeJS
+- Babel
