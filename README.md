@@ -1,4 +1,4 @@
-# GEolocation-App
+# Geolocation-App
 
 ## Spis treści
 * [Ogólne informacje](#ogólne-informacje)
